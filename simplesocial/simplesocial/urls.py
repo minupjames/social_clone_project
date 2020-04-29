@@ -16,14 +16,21 @@ Including another URLconf
 from django.urls import path, include
 from django.contrib import admin
 from . import views
+import logging
 
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', views.HomePage.as_view(), name="home"),
-    path('test/',views.TestPage.as_view(),name="test"),
-    path('thanks/',views.ThanksPage.as_view(),name="thanks"),
-    path('accounts/',include('accounts.urls',namespace='accounts')),
-    path('accounts/', include("django.contrib.auth.urls")),
-    path('groups/',include('groups.urls',namespace='groups')),
-    path('posts/',include('posts.urls',namespace='posts'))
-]
+logger = logging.getLogger(__name__)
+
+try:
+    urlpatterns = [
+        path('admin/', admin.site.urls),
+        path('', views.HomePage.as_view(), name="home"),
+        path('test/',views.TestPage.as_view(),name="test"),
+        path('login_starsocial/<name>/',views.StarSocialLogin.as_view(),name="starsocial_login"),
+        path('thanks/',views.ThanksPage.as_view(),name="thanks"),
+        path('accounts/',include('accounts.urls',namespace='accounts')),
+        path('accounts/', include("django.contrib.auth.urls")),
+        path('groups/',include('groups.urls',namespace='groups')),
+        path('posts/',include('posts.urls',namespace='posts'))
+    ]
+except Exception as exc:
+    logger.error("hello: %s", exc)
