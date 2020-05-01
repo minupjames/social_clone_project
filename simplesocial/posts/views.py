@@ -11,6 +11,7 @@ from django.http import Http404
 
 from . import forms
 from . import models
+from groups.models import Group,GroupMember
 
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -21,11 +22,11 @@ class PostList(SelectRelatedMixin, generic.ListView):
     model = models.Post
     select_related = ('user','group')
     template_name = 'posts/post_list.html'
-    
+
 class UserPosts(generic.ListView):
     model = models.Post
     template_name = 'posts/user_post_list.html'
-    
+
     def get_queryset(self):
         try:
             self.post_user = User.objects.prefetch_related('posts').get(username__iexact=self.kwargs.get('username'))
@@ -33,31 +34,31 @@ class UserPosts(generic.ListView):
             raise Http404
         else:
             return self.post_user.posts.all()
-            
+
     def get_context_data(self,**kwargs):
         context = super().get_context_data(**kwargs)
         context['post_user'] = self.post_user
         return context
-        
-    
+
+
 class PostDetail(SelectRelatedMixin, generic.DetailView):
     model = models.Post
     select_related = ('user','group')
-    
+
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.filter(
             user__username__iexact=self.kwargs.get("username")
         )
 
-   
-    
-    
+
+
+
 class PostDelete(LoginRequiredMixin, SelectRelatedMixin, generic.DeleteView):
     model = models.Post
     select_related = ("user", "group")
     success_url = reverse_lazy("posts:all_post")
-    
+
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.filter(user_id=self.request.user.id)
@@ -65,15 +66,19 @@ class PostDelete(LoginRequiredMixin, SelectRelatedMixin, generic.DeleteView):
     def delete(self, *args, **kwargs):
         messages.success(self.request, "Post Deleted")
         return super().delete(*args, **kwargs)
-    
+
 class CreatePost(LoginRequiredMixin, SelectRelatedMixin, generic.CreateView):
     model = models.Post
     fields = ('message','group')
-    
-    
+
+
     def form_valid(self, form):
         self.object = form.save(commit=False)
         self.object.user = self.request.user
-        self.object.save()
-        return super().form_valid(form)
-    
+        gp_memshp = GroupMember.objects.filter(user=self.object.user,group=self.object.group)
+        form.message = 'failed'
+        if  not gp_memshp:
+            return render(self.request,'posts/post_form.html',{'form':form,'message':'Please Join the selected group before creating Post'})
+        else:
+            self.object.save()
+            return super().form_valid(form)
